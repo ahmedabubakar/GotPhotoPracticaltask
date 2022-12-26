@@ -1,0 +1,52 @@
+version: "3.7"
+
+services:
+  database:
+    build: ./data/
+    command:
+      - "--default-authentication-plugin=mysql_native_password"
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=yes
+      - MYSQL_DATABASE=codetest
+      - MYSQL_USER=codetest
+      - MYSQL_PASSWORD=swordfish
+    ports:
+      - "3306:3306"
+    restart: always
+  
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  example-python:
+    image: example-python
+    build: images/example-python
+    command: ["./example.py"]
+    volumes:
+      - ./data:/data
+    depends_on: 
+        database:
+          condition: service_healthy
+
+  places_people-python:
+    image: places_people-python
+    build: images/places_people-python
+    command: ["./places_people.py"]
+    volumes:
+      - ./data:/data
+    depends_on: 
+        database:
+          condition: service_healthy
+    
+  places_people-output-python:
+    image: places_people-output-python
+    build: images/places_people-output-python
+    command: ["./places_people-output.py"]
+    volumes:
+      - ./data:/data
+    depends_on: 
+        places_people-python: 
+          condition: service_completed_successfully
+
+          
